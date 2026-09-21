@@ -7072,15 +7072,17 @@ m9223 -10 c25 -8 83 -25 128 -37 135 -36 119 53 132 -759 6 -388 15 -858 20
     const stage=document.getElementById('certStage');
     const canvas=document.getElementById('certCanvas');
     const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance'});
-    renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+    const PR=()=>Math.min(Math.max(window.devicePixelRatio||1,1.5),2);
+    renderer.setPixelRatio(PR());
+    renderer.toneMapping=THREE.NoToneMapping;
     renderer.outputEncoding=THREE.sRGBEncoding;
     const scene=new THREE.Scene();
     const cam=new THREE.PerspectiveCamera(32,1,0.1,60);
     const W=2,H=2*1.4137931034482758,SX=24,SY=34;
 
-    scene.add(new THREE.AmbientLight(0xffffff,0.55));
-    const dir=new THREE.DirectionalLight(0xffffff,0.22);dir.position.set(-2,3,4);scene.add(dir);
-    const glint=new THREE.PointLight(0xffffff,0.18,14);glint.position.set(0,0,3);scene.add(glint);
+    scene.add(new THREE.AmbientLight(0xffffff,0.84));
+    const dir=new THREE.DirectionalLight(0xffffff,0.26);dir.position.set(-2,3,4);scene.add(dir);
+    const glint=new THREE.PointLight(0xffffff,0.10,14);glint.position.set(0,0,3);scene.add(glint);
 
     const wc=document.createElement('canvas');wc.width=2400;wc.height=700;
     (function(){
@@ -7105,9 +7107,11 @@ m9223 -10 c25 -8 83 -25 128 -37 135 -36 119 53 132 -759 6 -388 15 -858 20
     const paper=new THREE.Group();paper.add(back,front);scene.add(paper);
 
     const img=new Image();
+    img.decoding='async';
     img.onload=()=>{
       const t=new THREE.Texture(img);t.needsUpdate=true;
       t.encoding=THREE.sRGBEncoding;t.anisotropy=renderer.capabilities.getMaxAnisotropy();
+      t.generateMipmaps=true;t.minFilter=THREE.LinearMipmapLinearFilter;t.magFilter=THREE.LinearFilter;t.premultiplyAlpha=false;
       frontMat.map=t;frontMat.needsUpdate=true;
     };
     img.src=IMG;
@@ -7119,7 +7123,7 @@ m9223 -10 c25 -8 83 -25 128 -37 135 -36 119 53 132 -759 6 -388 15 -858 20
     shadow.position.z=-1.6;shadow.renderOrder=0;scene.add(shadow);
 
     function fit(){
-      const w=stage.clientWidth||1,h=stage.clientHeight||1;renderer.setSize(w,h,false);
+      const w=stage.clientWidth||1,h=stage.clientHeight||1;renderer.setPixelRatio(PR());renderer.setSize(w,h,false);
       cam.aspect=w/h;
       const t=Math.tan(cam.fov*Math.PI/360);
       cam.position.z=Math.max((H/2)/t*1.12,(W/2)/(t*cam.aspect)*1.15);
@@ -7139,13 +7143,14 @@ m9223 -10 c25 -8 83 -25 128 -37 135 -36 119 53 132 -759 6 -388 15 -858 20
     canvas.addEventListener('pointerleave',()=>{active=false});
 
     const pos=geo.attributes.position,arr=pos.array;
+    let wave=1;
     function deform(t){
       let dx=px,dy=py;const len=Math.hypot(dx,dy)||1;dx/=len;dy/=len;
       const ext=(W/2)*Math.abs(dx)+(H/2)*Math.abs(dy);
       const s0=ext*(1-0.55*curl);
       for(let i=0;i<pos.count;i++){
         let x=base[i*3],y=base[i*3+1],z=0;
-        z+=Math.sin(x*2.4+y*1.2+t*1.25)*0.022+Math.sin(y*3.1-t*0.95)*0.015;
+        z+=(Math.sin(x*2.4+y*1.2+t*1.25)*0.022+Math.sin(y*3.1-t*0.95)*0.015)*wave;
         const s=x*dx+y*dy,k=Math.max(0,s-s0);
         if(k>0){z+=k*k*2.6*curl;x-=dx*k*k*0.9*curl;y-=dy*k*k*0.9*curl}
         if(rip<4){const r=Math.hypot(base[i*3],base[i*3+1]);z+=Math.sin(r*9-rip*9)*Math.exp(-r*1.4)*Math.exp(-rip*1.6)*0.09}
@@ -7186,6 +7191,7 @@ m9223 -10 c25 -8 83 -25 128 -37 135 -36 119 53 132 -759 6 -388 15 -858 20
       word.position.x=-px*.9;word.position.y=-py*.5;
       glint.position.set(px*3.2,py*3.2,2.6);
       shadow.position.x=-px*.5;shadow.position.y=-py*.5-.05;
+      wave=1-0.7*ent;
       deform(t);
       renderer.render(scene,cam);
     })(0);
