@@ -1003,6 +1003,17 @@
     background:var(--bg);
     filter:hue-rotate(180deg) saturate(2.00) brightness(0.35);
   }
+
+  /* ---------- 3D certificate (after internship log) ---------- */
+  #certificate{ display:block; height:auto; min-height:0; padding:0; overflow:visible; scroll-snap-align:start; }
+  #certificate .cert-scroll{ height:200vh; }
+  #certificate .cert-pin{ position:sticky; top:0; height:100vh; height:100svh; overflow:hidden; }
+  #certificate .cert-pin > .wrap{ position:absolute; top:84px; left:0; right:auto; margin:0; max-width:none; width:auto; padding:0 clamp(16px,2.5vw,36px); z-index:2; pointer-events:none; }
+  #certificate .section-head{ margin-bottom:0; }
+  #certificate .section-head h2{ font-size:clamp(15px, 2.4vh, 24px); }
+  #certificate .eyebrow{ font-size:10px; margin-bottom:6px; }
+  #certificate .cert-stage{ position:absolute; inset:0; z-index:1; overflow:hidden; background:transparent; }
+  #certificate .cert-stage canvas{ position:absolute; inset:0; width:100%; height:100%; display:block; touch-action:pan-y; cursor:grab; }
 </style>
 </head>
 <body>
@@ -7030,6 +7041,143 @@ m9223 -10 c25 -8 83 -25 128 -37 135 -36 119 53 132 -759 6 -388 15 -858 20
     </div>
   </section>
 
+  <section class="section tight" id="certificate">
+   <div class="cert-scroll"><div class="cert-pin">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div class="eyebrow">Certificate</div>
+        <h2>INTERNSHIP <span class="dim">CERTIFICATE</span></h2>
+      </div>
+    </div>
+    <div class="cert-stage" id="certStage">
+      <canvas id="certCanvas"></canvas>
+    </div>
+   </div></div>
+  </section>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+  (function(){
+    if(typeof THREE==='undefined') return;
+    const IMG="assets/certificate-internship.jpg";
+    const WORD="INTERNSHIP";
+    const stage=document.getElementById('certStage');
+    const canvas=document.getElementById('certCanvas');
+    const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance'});
+    renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+    renderer.outputEncoding=THREE.sRGBEncoding;
+    const scene=new THREE.Scene();
+    const cam=new THREE.PerspectiveCamera(32,1,0.1,60);
+    const W=2,H=2*1.4137931034482758,SX=30,SY=44;
+
+    scene.add(new THREE.AmbientLight(0xffffff,0.55));
+    const dir=new THREE.DirectionalLight(0xffffff,0.22);dir.position.set(-2,3,4);scene.add(dir);
+    const glint=new THREE.PointLight(0xffffff,0.18,14);glint.position.set(0,0,3);scene.add(glint);
+
+    const wc=document.createElement('canvas');wc.width=2400;wc.height=700;
+    (function(){
+      const x=wc.getContext('2d');
+      let fs=520;x.font='800 '+fs+'px "Helvetica Neue",Arial,sans-serif';
+      const m=x.measureText(WORD).width;fs=Math.floor(fs*2240/m);
+      x.font='800 '+fs+'px "Helvetica Neue",Arial,sans-serif';
+      x.textAlign='center';x.textBaseline='middle';
+      const g=x.createLinearGradient(0,0,0,700);
+      g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(1,'rgba(255,255,255,.28)');
+      x.fillStyle=g;x.fillText(WORD,1200,360);
+    })();
+    const word=new THREE.Mesh(new THREE.PlaneGeometry(9.6,9.6*700/2400),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(wc),transparent:true,depthWrite:false}));
+    word.position.z=-1.5;word.renderOrder=0;scene.add(word);
+
+    const nc=document.createElement('canvas');nc.width=nc.height=256;
+    (function(){
+      const x=nc.getContext('2d'),d=x.createImageData(256,256);
+      for(let i=0;i<d.data.length;i+=4){const v=110+Math.random()*90;d.data[i]=d.data[i+1]=d.data[i+2]=v;d.data[i+3]=255}
+      x.putImageData(d,0,0);x.filter='blur(1.2px)';x.drawImage(nc,0,0);
+    })();
+    const grain=new THREE.CanvasTexture(nc);grain.wrapS=grain.wrapT=THREE.RepeatWrapping;grain.repeat.set(5,7);
+
+    const geo=new THREE.PlaneGeometry(W,H,SX,SY);
+    const base=geo.attributes.position.array.slice();
+    const frontMat=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.85,bumpMap:grain,bumpScale:.1,side:THREE.FrontSide});
+    const backMat=new THREE.MeshStandardMaterial({color:0xefeae0,roughness:.9,side:THREE.BackSide});
+    const front=new THREE.Mesh(geo,frontMat),back=new THREE.Mesh(geo,backMat);
+    front.renderOrder=back.renderOrder=1;
+    const paper=new THREE.Group();paper.add(back,front);scene.add(paper);
+
+    const img=new Image();
+    img.onload=()=>{
+      const t=new THREE.Texture(img);t.needsUpdate=true;
+      t.encoding=THREE.sRGBEncoding;t.anisotropy=renderer.capabilities.getMaxAnisotropy();
+      frontMat.map=t;frontMat.needsUpdate=true;
+    };
+    img.src=IMG;
+
+    const sc=document.createElement('canvas');sc.width=sc.height=128;
+    const sx=sc.getContext('2d'),g=sx.createRadialGradient(64,64,0,64,64,64);
+    g.addColorStop(0,'rgba(0,0,0,.6)');g.addColorStop(1,'rgba(0,0,0,0)');sx.fillStyle=g;sx.fillRect(0,0,128,128);
+    const shadow=new THREE.Mesh(new THREE.PlaneGeometry(W*1.5,H*1.35),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(sc),transparent:true,depthWrite:false}));
+    shadow.position.z=-1.6;shadow.renderOrder=0;scene.add(shadow);
+
+    function fit(){
+      const w=stage.clientWidth||1,h=stage.clientHeight||1;renderer.setSize(w,h,false);
+      cam.aspect=w/h;
+      const t=Math.tan(cam.fov*Math.PI/360);
+      cam.position.z=Math.max((H/2)/t*1.12,(W/2)/(t*cam.aspect)*1.15);
+      cam.updateProjectionMatrix();
+      const visW=2*t*(cam.position.z-word.position.z)*cam.aspect;
+      word.scale.setScalar(Math.max(1,visW*0.96/9.6));
+    }
+    addEventListener('resize',fit);
+    if(window.ResizeObserver) new ResizeObserver(fit).observe(stage);
+    fit();
+
+    let tx=0,ty=0,px=0,py=0,curlT=0,curl=0,active=false,rip=99;
+    function setPtr(e){const r=canvas.getBoundingClientRect();tx=((e.clientX-r.left)/r.width)*2-1;ty=-(((e.clientY-r.top)/r.height)*2-1);active=true}
+    canvas.addEventListener('pointermove',setPtr);
+    canvas.addEventListener('pointerdown',e=>{setPtr(e);rip=0;canvas.style.cursor='grabbing'});
+    canvas.addEventListener('pointerup',()=>canvas.style.cursor='grab');
+    canvas.addEventListener('pointerleave',()=>{active=false});
+
+    const pos=geo.attributes.position,arr=pos.array;
+    function deform(t){
+      let dx=px,dy=py;const len=Math.hypot(dx,dy)||1;dx/=len;dy/=len;
+      const ext=(W/2)*Math.abs(dx)+(H/2)*Math.abs(dy);
+      const s0=ext*(1-0.55*curl);
+      for(let i=0;i<pos.count;i++){
+        let x=base[i*3],y=base[i*3+1],z=0;
+        z+=Math.sin(x*2.4+y*1.2+t*1.25)*0.022+Math.sin(y*3.1-t*0.95)*0.015;
+        const s=x*dx+y*dy,k=Math.max(0,s-s0);
+        if(k>0){z+=k*k*2.6*curl;x-=dx*k*k*0.9*curl;y-=dy*k*k*0.9*curl}
+        if(rip<4){const r=Math.hypot(base[i*3],base[i*3+1]);z+=Math.sin(r*9-rip*9)*Math.exp(-r*1.4)*Math.exp(-rip*1.6)*0.09}
+        arr[i*3]=x;arr[i*3+1]=y;arr[i*3+2]=z;
+      }
+      pos.needsUpdate=true;geo.computeVertexNormals();
+    }
+
+    let visible=true;
+    if('IntersectionObserver' in window) new IntersectionObserver(es=>{visible=es[0].isIntersecting},{rootMargin:'100px'}).observe(stage);
+    const clock=new THREE.Clock();
+    let last=0;
+    (function loop(now){
+      requestAnimationFrame(loop);
+      if(!visible||document.hidden) return;
+      if(now-last<15.5) return;
+      last=now;
+      const t=clock.getElapsedTime();
+      if(!active){tx=Math.sin(t*.45)*.35;ty=Math.cos(t*.37)*.25}
+      curlT=active?Math.min(1,Math.hypot(tx,ty)*.95):0;
+      px+=(tx-px)*.07;py+=(ty-py)*.07;curl+=(curlT-curl)*.06;rip+=0.016;
+      paper.rotation.y=px*.38;paper.rotation.x=-py*.3;
+      paper.position.z=curl*.25;
+      word.position.x=-px*.9;word.position.y=-py*.5;
+      glint.position.set(px*3.2,py*3.2,2.6);
+      shadow.position.x=-px*.5;shadow.position.y=-py*.5-.05;
+      deform(t);
+      renderer.render(scene,cam);
+    })(0);
+  })();
+  </script>
+
   <section class="section tight" id="education">
     <div class="wrap">
       <div class="edu-scroll-outer" id="eduScrollOuter">
@@ -7872,6 +8020,7 @@ m1730 -1437 c-132 -133 -309 -318 -394 -411 l-155 -167 -8 32 c-12 48 -35 77
             <!-- <li><a href="#projects">Projects</a></li> -->
             <li><a href="#experience">Experience</a></li>
             <li><a href="#internships">Internships</a></li>
+            <li><a href="#certificate">Certificate</a></li>
             <li><a href="#education">Education</a></li>
           </ul>
         </div>
